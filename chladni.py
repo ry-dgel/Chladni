@@ -241,12 +241,13 @@ def demo_spectra(c):
     f = numpy.linspace(0,24e3,numpy.size(mag)) # 24e3 = 1/2 f_sample = 48kHz
     p.plot(f,mag)
 
-def demo_freqscan(c):
-    npts = 100
+def demo_freqscan(c, min, max, stpsize):
+    npts = int(numpy.ceil((max-min) / stpsize)) + 1
+    print(npts)
     dc = numpy.zeros(npts)
     amp = numpy.zeros(npts)
     phase = numpy.zeros(npts)
-    f = numpy.linspace(90,110,npts)
+    f = numpy.linspace(min,max,npts)
     for i in range(npts):
         f[i] = c.sine(f[i])
         time.sleep(1)
