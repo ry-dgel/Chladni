@@ -87,7 +87,7 @@ class Vibrating_Plate:
     def angular_go(self,steps):
         #Protect wire by going opposite direction if has already gone two full circles past
         #calibrated zero point
-        if self.angular * numpy.sign(steps) > 1440:
+        if self.angular * numpy.sign(steps) >= 1440:
             steps = -numpy.sign(steps) * (720 - steps) 
         command = "a_go %d\n" % (steps)
         self.handle.write(command);
@@ -149,6 +149,63 @@ class Vibrating_Plate:
     def calibrate(self):
         self.radial = 0
         self.angular = 0
+    def calibrate_radial(self):
+        self.radial = 0
+    def calibrate_angular(self):
+        self.angular = 0
+        
+class dummy_vibrating_plate(object):
+    def __init__(self):
+        self.radial = 0
+        self.angular = 0
+        self.handle = True
+    def reader(self):
+        print "reader starts"
+    def noise(self):
+        pass
+    def silent(self):
+        pass
+    def sine(self,freq):
+        return None
+    def angular_set(self,dt):
+        pass
+    def radial_set(self,dt):
+        pass
+    def angular_go(self,steps):
+        #Protect wire by going opposite direction if has already gone two full circles past
+        #calibrated zero point
+        if self.angular * numpy.sign(steps) >= 1440:
+            steps = -numpy.sign(steps) * (720 - steps) 
+        self.angular += steps
+        return True
+    def radial_go(self,steps):
+        self.radial += steps
+        return True
+    def angular_idle(self):
+        return True
+    def radial_idle(self):
+        return True
+    def go_and_wait(self,angular,radial):
+        if (angular != 0): self.angular_go(angular)
+        if (radial != 0): self.radial_go(radial)
+        return True
+    def get_samples(self):
+        return 0
+    def angular_record(self,steps):
+        self.angular_go(steps)
+        return 0
+    def radial_record(self,steps):
+        self.radial_go(steps)
+        return 0
+    def raw_record(self):
+        return self.get_samples()
+    def calibrate(self):
+        self.radial = 0
+        self.angular = 0
+    def calibrate_radial(self):
+        self.radial = 0
+    def calibrate_angular(self):
+        self.angular = 0
 
 def demo_motors(c):
     npts = 7
@@ -209,33 +266,59 @@ def demo_m_sample(c):
 
 #Go to a position on the plate where r is the radius, in steps
 #and theta is the angle in degrees.
-def go_to_polar(c, r=None, theta=None):
-    if r = None:
+def go_to_polar(c, r=None, theta=None, verbose=False):
+    if r == None:
         r = c.radial
-    if theta = None:
+    if theta == None:
         theta = c.angular
+        
     radial_steps = r - c.radial
-    angular_steps =numpy.rint(theta * 2 - c.angular)
-    c.angular_go(angular_steps)
-    c.radial_go(radial_steps)
+    #Mod to never go outside a full circle
+    angular_steps = numpy.rint((theta) * 2 - c.angular)
+    
+    current_radial = c.radial
+    
+    if c.radial > 5000 and angular_steps != 0:
+        c.go_and_wait(0,-(c.radial - 5000))
+        if verbose:
+            print "Moving in before angular: radial, angular", 
+            print c.radial, c.angular/2.0
+        c.go_and_wait(angular_steps, radial_steps+(current_radial-5000))
+        if verbose:
+            print "Moving back out after angular: radial, angular",
+            print c.radial, c.angular/2.0
+    else:
+        c.go_and_wait(angular_steps, radial_steps)
+
+#Same 
+def go_to_polar2(c, r=None, theta=None):
+    pass
 
 #Go to x,y position where x,y are in steps, plate is ~14000 in width
-def go_to_cart(c, x, y):
+def go_to_cart(c, x, y, verbose=False):
     r = numpy.rint(numpy.sqrt(x**2 + y**2))
     theta = numpy.degrees(numpy.arctan2(y,x))
-    if r > 7000:
-        go_to_polar(c,0,0)
-    go_to_polar(c,r,theta)
+    go_to_polar(c, r, theta, verbose)
 
-def square_scan(c, grid_width=3):
-    plate_width = 14000
-    step_size = numpy.trunc(plate_width / (grid_widtht - 1))
+def square_scan(c, grid_width=3, verbose=False):
+    plate_width = 10000
+    step_size = int(plate_width / (grid_width - 1))
+    if verbose:
+        print "Step size", step_size
     #7000 being a magic number for the "radius" (half the width) of the plate
-    for i in range(-7000,7000,step_size):
-        for j in range(-7000,7000,step_size):
-            go_to_cart(c,x,y)
+    for i in range(-5000,5001,step_size):
+        for j in range(-5000,5001,step_size):
+            go_to_cart(c, i, j, verbose)
+            if verbose:
+                print "Position i, j: ", i, j
+                print "radial:", c.radial 
+                print "angular degrees:", c.angular/2.0
+            time.sleep(1)
             #Perform measurement, c.sine, freqscan??
     #Do stuff with results
+    go_to_cart(c, 0, 0)
 
-plate = Vibrating_Plate()
+plate = dummy_vibrating_plate()
 
+def test_square_scan(c, grid_width=3):
+    square_scan(c, grid_width=grid_width, verbose=True)
