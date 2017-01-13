@@ -229,5 +229,15 @@ def go_to_cart(c, x, y):
         go_to_polar(c,0,0)
     go_to_polar(c,r,theta)
 
+def square_scan(c, grid_width=3):
+    plate_width = 14000
+    step_size = numpy.trunc(plate_width / (grid_widtht - 1))
+    #7000 being a magic number for the "radius" (half the width) of the plate
+    for i in range(-7000,7000,step_size):
+        for j in range(-7000,7000,step_size):
+            go_to_cart(c,x,y)
+            #Perform measurement, c.sine, freqscan??
+    #Do stuff with results
+
 plate = Vibrating_Plate()
 
