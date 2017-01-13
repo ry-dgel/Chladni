@@ -346,7 +346,7 @@ def data_square_scan(
     #7000 being a magic number for the "radius" (half the width) of the plate
     npts = int(numpy.ceil((fmax-fmin) / fstep)) + 1
     grid_length = len(range(-5000, 5001, step_size))
-    all_amplitudes = np.zeros((
+    all_amplitudes = numpy.zeros((
             grid_length,
             grid_length,
             npts))
@@ -365,6 +365,18 @@ def data_square_scan(
     #Do stuff with results
     go_to_cart(c, 0, 0)
     return all_amplitudes
+    
+def go_home(c):
+    go_to_cart(c,0,0)
+    
+def scan_and_save(c, fmin, fmax, fstep, grid_width=3):
+    filename = '%s_%s_%s_%s.txt' %(grid_width,fmin,fmax,fstep)
+    f = open(filename,'w')
+    amp = data_square_scan(plate,fmin,fmax,fstep,grid_width)
+    f.write('%s' %amp)
+    f.write('\n')
+    f.close()
+    return amp
 
 plate = dummy_vibrating_plate()
 
