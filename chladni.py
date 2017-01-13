@@ -253,6 +253,7 @@ def demo_freqscan(c, min, max, stpsize):
         time.sleep(1)
         dc[i],amp[i],phase[i] = c.get()
         print "f=%f, dc=%f, amp=%f, phase=%f" % (f[i],dc[i],amp[i],phase[i])
+    c.silent()
     p.figure()
     p.plot(f,amp)
     p.figure()
@@ -319,7 +320,58 @@ def square_scan(c, grid_width=3, verbose=False):
     #Do stuff with results
     go_to_cart(c, 0, 0)
 
+def data_freqscan(c, min, max, stpsize):
+    npts = int(numpy.ceil((max-min) / stpsize)) + 1
+    print(npts)
+    dc = numpy.zeros(npts)
+    amp = numpy.zeros(npts)
+    phase = numpy.zeros(npts)
+    f = numpy.linspace(min,max,npts)
+    for i in range(npts):
+        f[i] = c.sine(f[i])
+        time.sleep(1)
+        dc[i],amp[i],phase[i] = c.get()
+        print "f=%f, dc=%f, amp=%f, phase=%f" % (f[i],dc[i],amp[i],phase[i])
+    c.silent()
+    return amp
+
+def data_square_scan(
+        c, fmin, fmax, fstep,
+        grid_width=3, verbose=False):
+
+    plate_width = 10000
+    step_size = int(plate_width / (grid_width - 1))
+    if verbose:
+        print "Step size", step_size
+    #7000 being a magic number for the "radius" (half the width) of the plate
+    npts = int(numpy.ceil((fmax-fmin) / fstep)) + 1
+    grid_length = len(range(-5000, 5001, step_size))
+    all_amplitudes = np.zeros((
+            grid_length,
+            grid_length,
+            npts))
+    
+    for i in range(0, grid_length, 1):
+        for j in range(0, grid_length, 1):
+            position_x = i*step_size - plate_width/2
+            position_y = j*step_size - plate_width/2
+            go_to_cart(c, position_x, position_y, verbose)
+            if verbose:
+                print "Position i, j: ", i, j
+                print "radial:", c.radial 
+                print "angular degrees:", c.angular/2.0
+            all_amplitudes[i, j, :] = data_freqscan(c, fmin, fmax, fstep)[:]
+            #Perform measurement, c.sine, freqscan??
+    #Do stuff with results
+    go_to_cart(c, 0, 0)
+    return all_amplitudes
+
 plate = dummy_vibrating_plate()
 
 def test_square_scan(c, grid_width=3):
     square_scan(c, grid_width=grid_width, verbose=True)
+
+def test_data_square_scan(c, fmin, fmax, fstep, grid_width=3):
+    amplitudes = data_square_scan(c, fmin, fmax, fstep, grid_width=grid_width, verbose=True)
+    return amplitudes
+

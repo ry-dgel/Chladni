@@ -1,0 +1,1 @@
+Each data filename should be: gridsize_minfreq_maxfreq_stepsize.txt
