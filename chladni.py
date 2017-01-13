@@ -113,9 +113,7 @@ class Vibrating_Plate:
     def go_and_wait(self,angular,radial):
         while not (self.angular_idle() and self.radial_idle()): True
         if (angular != 0): self.angular_go(angular)
-            self.angular += angular
         if (radial != 0): self.radial_go(radial)
-            self.radial += radial
         while not (self.angular_idle() and self.radial_idle()): True
         return True
     def get_samples(self):
@@ -131,7 +129,6 @@ class Vibrating_Plate:
         self.handle.write("m_sample\n");
         self.wait_for("m_sample")
         self.angular_go(steps)
-        self.angular += steps
         while not self.angular_idle(): time.sleep(1)
         values = self.get_samples()
         if abs(steps) != numpy.size(values,axis=0):
@@ -141,7 +138,6 @@ class Vibrating_Plate:
         self.handle.write("m_sample\n");
         self.wait_for("m_sample")
         self.radial_go(steps)
-        self.angular += steps
         while not self.radial_idle(): time.sleep(1)
         values = self.get_samples()
         if abs(steps) != numpy.size(values,axis=0):
