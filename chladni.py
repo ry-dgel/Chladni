@@ -240,6 +240,7 @@ def demo_spectra(c):
     mag[0] = 0 # get rid of that massive DC offset
     f = numpy.linspace(0,24e3,numpy.size(mag)) # 24e3 = 1/2 f_sample = 48kHz
     p.plot(f,mag)
+    return f
 
 def demo_freqscan(c, min, max, stpsize):
     npts = int(numpy.ceil((max-min) / stpsize)) + 1
@@ -265,6 +266,12 @@ def demo_m_sample(c):
     p.figure()
     p.plot(y)
     c.go_and_wait(0,-7000)
+    
+def r_sample(c,rad):
+    c.radial_go(rad)
+    y = c.angular_record(720)
+    p.figure()
+    p.plot(y)
 
 #Go to a position on the plate where r is the radius, in steps
 #and theta is the angle in degrees.
@@ -279,6 +286,9 @@ def go_to_polar(c, r=None, theta=None, verbose=False):
     angular_steps = numpy.rint((theta) * 2 - c.angular)
     
     current_radial = c.radial
+    
+    assert theta < 720 
+    assert r < 10000
     
     if c.radial > 5000 and angular_steps != 0:
         c.go_and_wait(0,-(c.radial - 5000))
@@ -303,13 +313,13 @@ def go_to_cart(c, x, y, verbose=False):
     go_to_polar(c, r, theta, verbose)
 
 def square_scan(c, grid_width=3, verbose=False):
-    plate_width = 10000
+    plate_width = 12000
     step_size = int(plate_width / (grid_width - 1))
     if verbose:
         print "Step size", step_size
     #7000 being a magic number for the "radius" (half the width) of the plate
-    for i in range(-5000,5001,step_size):
-        for j in range(-5000,5001,step_size):
+    for i in range(-6000,6001,step_size):
+        for j in range(-6000,6001,step_size):
             go_to_cart(c, i, j, verbose)
             if verbose:
                 print "Position i, j: ", i, j
@@ -320,7 +330,7 @@ def square_scan(c, grid_width=3, verbose=False):
     #Do stuff with results
     go_to_cart(c, 0, 0)
 
-def data_freqscan(c, min, max, stpsize):
+def data_freqscan(c, min, max, stpsize,show_plots=False):
     npts = int(numpy.ceil((max-min) / stpsize)) + 1
     print(npts)
     dc = numpy.zeros(npts)
@@ -331,21 +341,39 @@ def data_freqscan(c, min, max, stpsize):
         f[i] = c.sine(f[i])
         time.sleep(1)
         dc[i],amp[i],phase[i] = c.get()
-        print "f=%f, dc=%f, amp=%f, phase=%f" % (f[i],dc[i],amp[i],phase[i])
+        print "f=%f, dc=%f, amp=%f, phase=%f"% (f[i],dc[i],amp[i],phase[i])
     c.silent()
-    return amp
+    if show_plots:
+        p.figure()
+        p.plot(f,amp)
+        p.figure()
+        p.plot(f,phase)
+    return amp, phase
+    
+def data_const_freq(c, freq, runs=100):
+    npts = runs
+    dc = numpy.zeros(runs)
+    amp = numpy.zeros(runs)
+    phase = numpy.zeros(runs)
+    c.sine(freq)
+    for i in range(npts):
+        time.sleep(1)
+        dc[1],amp[i],phase[i] = c.get()
+        print "dc=%f, amp=%f, phase=%f" % (dc[i],amp[i],phase[i])
+    c.silent()
+    p.plot(amp)
 
 def data_square_scan(
         c, fmin, fmax, fstep,
         grid_width=3, verbose=False):
 
-    plate_width = 10000
+    plate_width = 12000
     step_size = int(plate_width / (grid_width - 1))
     if verbose:
         print "Step size", step_size
     #7000 being a magic number for the "radius" (half the width) of the plate
     npts = int(numpy.ceil((fmax-fmin) / fstep)) + 1
-    grid_length = len(range(-5000, 5001, step_size))
+    grid_length = len(range(-6000, 6001, step_size))
     all_amplitudes = numpy.zeros((
             grid_length,
             grid_length,
@@ -360,22 +388,45 @@ def data_square_scan(
                 print "Position i, j: ", i, j
                 print "radial:", c.radial 
                 print "angular degrees:", c.angular/2.0
-            all_amplitudes[i, j, :] = data_freqscan(c, fmin, fmax, fstep)[:]
+            all_amplitudes[i, j, :] = data_freqscan(c, fmin, fmax, fstep)[0][:]
             #Perform measurement, c.sine, freqscan??
     #Do stuff with results
     go_to_cart(c, 0, 0)
     return all_amplitudes
     
+def const_freqscan(c,freq,npts,show_plots=False):
+    freq = c.sine(freq)
+    dc = numpy.zeros(npts)
+    amp = numpy.zeros(npts)
+    phase = numpy.zeros(npts)
+    f = numpy.linspace(0,npts-1,npts)
+    for i in range(npts):
+        time.sleep(1)
+        dc[i],amp[i],phase[i] = c.get()
+        print "f=%f, dc=%f, amp=%f, phase=%f"% (f[i],dc[i],amp[i],phase[i])
+    c.silent()
+    if show_plots:
+        p.figure()
+        p.plot(f,amp)
+        p.figure()
+        p.plot(f,phase)
+    return amp, phase
+    
+def data_const_scan(c):
+    i = 0
+    while i < 360:
+        demo_m_sample(c)
+        go_to_polar(c,0,i)
+        i = i + 45
+    go_home(c)
+
 def go_home(c):
     go_to_cart(c,0,0)
     
 def scan_and_save(c, fmin, fmax, fstep, grid_width=3):
-    filename = '%s_%s_%s_%s.txt' %(grid_width,fmin,fmax,fstep)
-    f = open(filename,'w')
+    filename = '%s_%s_%s_%s' %(grid_width,fmin,fmax,fstep)
     amp = data_square_scan(plate,fmin,fmax,fstep,grid_width)
-    f.write('%s' %amp)
-    f.write('\n')
-    f.close()
+    numpy.save(filename, amp)
     return amp
 
 plate = dummy_vibrating_plate()
