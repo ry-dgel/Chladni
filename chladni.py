@@ -412,6 +412,19 @@ def const_freqscan(c,freq,npts,show_plots=False):
         p.plot(f,phase)
     return amp, phase
     
+def multiscan_avg(c, min, max, stpsize, runs):
+    npts = int(numpy.ceil((max-min) / stpsize)) + 1
+    amps = numpy.zeros((runs,npts))
+    phases = numpy.zeros((runs,npts))
+    f = numpy.linspace(min,max,npts)
+    for i in range(runs):
+        amps[i],phases[i] = data_freqscan(c, min, max, stpsize)
+    p.figure()
+    p.plot(f,numpy.mean(amps,0))
+    p.figure()
+    p.plot(f,numpy.mean(phases,0))
+    return numpy.mean(amps,0),numpy.mean(phases,0)
+    
 def data_const_scan(c):
     i = 0
     while i < 360:
@@ -429,7 +442,7 @@ def scan_and_save(c, fmin, fmax, fstep, grid_width=3):
     numpy.save(filename, amp)
     return amp
 
-plate = dummy_vibrating_plate()
+plate = Vibrating_Plate()
 
 def test_square_scan(c, grid_width=3):
     square_scan(c, grid_width=grid_width, verbose=True)
