@@ -441,7 +441,19 @@ def scan_and_save(c, fmin, fmax, fstep, grid_width=3):
     amp = data_square_scan(plate,fmin,fmax,fstep,grid_width)
     numpy.save(filename, amp)
     return amp
-
+    
+def Q_factor(c,freq):
+    print('play')
+    c.sine(freq)
+    print('sleep 1')
+    time.sleep(4)
+    print('shut up')
+    c.silent()
+    print('record')
+    raw = c.raw_record()
+    print('return')
+    return raw
+    
 plate = Vibrating_Plate()
 
 def test_square_scan(c, grid_width=3):
