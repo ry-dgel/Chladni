@@ -266,13 +266,14 @@ def demo_m_sample(c):
     p.figure()
     p.plot(y)
     c.go_and_wait(0,-7000)
+    return y
     
 def r_sample(c,rad):
     c.radial_go(rad)
     y = c.angular_record(720)
     p.figure()
     p.plot(y)
-
+    return y
 #Go to a position on the plate where r is the radius, in steps
 #and theta is the angle in degrees.
 def go_to_polar(c, r=None, theta=None, verbose=False):
