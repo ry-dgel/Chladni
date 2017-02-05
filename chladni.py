@@ -420,11 +420,11 @@ def multiscan_avg(c, min, max, stpsize, runs):
     f = numpy.linspace(min,max,npts)
     for i in range(runs):
         amps[i],phases[i] = data_freqscan(c, min, max, stpsize)
-    p.figure()
-    p.plot(f,numpy.mean(amps,0))
-    p.figure()
-    p.plot(f,numpy.mean(phases,0))
-    return numpy.mean(amps,0),numpy.mean(phases,0)
+    #p.figure()
+    #p.plot(f,numpy.mean(amps,0))
+    #p.figure()
+    #p.plot(f,numpy.mean(phases,0))
+    return amps, phases#numpy.mean(amps,0),numpy.mean(phases,0)
     
 def data_const_scan(c):
     i = 0
